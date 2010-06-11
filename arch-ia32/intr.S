@@ -4,12 +4,21 @@
 .globl int_null
 int_null: iret
 
+.globl ret_from_fork_in_child
+ret_from_fork_in_child:
+	movl %eax, %ds
+	movl %eax, %es
+	popa
+	addl $4,%esp
+	iret
+
 #define DO_intr(name, c_call) \
 .globl name;		\
 name:			\
 	pushl $0 ;	\
 	pusha;		\
-	movl $__KERNEL_DS, %eax; \
+	xorl %eax,%eax; \
+	movb $__KERNEL_DS, %al; \
 	movl %eax, %ds;	\
 	movl %eax, %es;	\
 	call c_call;	\
@@ -25,7 +34,8 @@ _exc##nr:\
 	pushl $0 ;\
 	pusha ;\
 	pushl $##nr ;\
-	movl $__KERNEL_DS, %eax; \
+	xorl %eax,%eax; \
+	movb $__KERNEL_DS, %al; \
 	movl %eax, %ds;	\
 	movl %eax, %es;	\
 	call exc_handler ;\
@@ -41,7 +51,8 @@ _exc##nr:\
 _exc##nr:\
 	pusha ;\
 	pushl $##nr ;\
-	movl $__KERNEL_DS, %eax; \
+	xorl %eax,%eax; \
+	movb $__KERNEL_DS, %al; \
 	movl %eax, %ds;	\
 	movl %eax, %es;	\
 	call exc_handler ;\
@@ -58,7 +69,8 @@ _irq##nr:\
 	pushl $0 ;\
 	pusha ;\
 	pushl $##nr;\
-	movl $__KERNEL_DS, %eax; \
+	xorl %eax,%eax; \
+	movb $__KERNEL_DS, %al; \
 	movl %eax, %ds;	\
 	movl %eax, %es;	\
 	call irq_handler;\
