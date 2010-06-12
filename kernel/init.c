@@ -10,6 +10,7 @@ static inline _SYSCALL1(_SYS_exec, int, _kernel_exec, const char *);
 static inline _SYSCALL2(_SYS_open, int, _kernel_open, const char *, unsigned int);
 static inline _SYSCALL3(_SYS_read, int, _kernel_read, struct file *, char *, size_t);
 static inline _SYSCALL1(_SYS_close, int, _kernel_close, unsigned int);
+static inline _SYSCALL3(_SYS_write, int, _kernel_write, unsigned int, const char *, size_t);
 
 /* Init task - the job of this task is to initialise all
  * installed drivers, mount the root filesystem and
@@ -46,6 +47,7 @@ int init_task(void *priv)
 			buf[rval] = '\0';
 			printk("read: %s.\n", buf);
 		}
+		rval = kernel_write(file, buf, 16);
 		kernel_close(file);
 	}
 

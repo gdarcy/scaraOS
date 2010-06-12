@@ -22,7 +22,7 @@ struct syscall_desc {
 
 _noreturn void _sys_exit(uint32_t code);
 
-static int _sys_write(int fd, void *buf, size_t count)
+int _sys_write_stdout(int fd, void *buf, size_t count)
 {
 	if ( fd == 1 ) {
 		char *kbuf;
