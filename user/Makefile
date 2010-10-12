@@ -8,7 +8,7 @@ TOPDIR :=  .
 .PHONY: all clean boot_floppy
 TARGET: all
 
-LDFLAGS := -melf_i386 -nostdlib --no-omagic --strip-all
+LDFLAGS := -melf_i386 -nostdlib -N --strip-all -e_start
 CFLAGS  := -pipe -ggdb -Os -Wall -ffreestanding -fno-stack-protector \
 	-Wsign-compare -Wcast-align -Waggregate-return \
 	-Wstrict-prototypes -Wmissing-prototypes \
@@ -61,24 +61,36 @@ CAT_C_SOURCES := cat.c
 CAT_OBJ := $(patsubst %.c, %.o, $(CAT_C_SOURCES))
 cat: $(CAT_OBJ)
 
-ALL_TARGETS := $(C_RUNTIME) init cpuhog-a cpuhog-b cat
+TRUE_ASM_SOURCES := true.S
+TRUE_OBJ := $(patsubst %.c, %.o, $(CAT_ASM_SOURCES))
+true: $(TUE_OBJ)
 
-ALL_OBJ := $(CRT_OBJ) $(INIT_OBJ) $(CPUHOGA_OBJ) $(CPUHOGB_OBJ) $(CAT_OBJ)
-ALL_ASM := $(CRT_ASM_SOURCES)
+TRUE_ASM_SOURCES := false.S
+TRUE_OBJ := $(patsubst %.c, %.o, $(CAT_ASM_SOURCES))
+true: $(TUE_OBJ)
+
+SBIN_TARGETS := init cpuhog-a cpuhog-b
+BIN_TARGETS := cat true false
+ALL_TARGETS := $(C_RUNTIME) $(SBIN_TARGETS) $(BIN_TARGETS)
+
+ALL_OBJ := $(CRT_OBJ) $(INIT_OBJ) $(CPUHOGA_OBJ) $(CPUHOGB_OBJ) $(CAT_OBJ) \
+		$(TRUE_OBJ) $(FALSE_OBJ)
+ALL_ASM := $(CRT_ASM_SOURCES) $(TRUE_ASM_SOURCES)
 ALL_C   := $(CRT_C_SOURCES) $(INIT_C_SOURCES) $(CPUHOGA_C_SOURCES) $(CPUHOGB_C_SOURCES) $(CAT_C_SOURCES)
 
 ALL_DEP :=  $(patsubst %.S, %.d, $(ALL_ASM)) \
 		$(patsubst %.c, %.d, $(ALL_C) )
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(ALL_DEP)
+-include $(ALL_DEP)
 endif
 
 all: Makefile $(ALL_TARGETS)
 
 boot_floppy: all
-	@e2cp init $(BOOT_FLOPPY):/sbin/
-	@e2cp cpuhog-[ab] $(BOOT_FLOPPY):/sbin/
+	@e2cp $(SBIN_TARGETS) $(BOOT_FLOPPY):/sbin/
+	@e2cp $(BIN_TARGETS) $(BOOT_FLOPPY):/bin/
+	@e2cp ../README $(BOOT_FLOPPY):/README
 
 clean:
-	rm -f $(ALL_OBJ) $(ALL_DEP) $(ALL_TARGETS)
+	@rm -f $(ALL_OBJ) $(ALL_DEP) $(ALL_TARGETS)

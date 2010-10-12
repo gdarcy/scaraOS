@@ -47,14 +47,10 @@ void file_release(struct file *file);
 int _sys_open(const char *fh, unsigned int mode);
 int _sys_read(unsigned int fd, char * buf, size_t size);
 int _sys_close(unsigned int fd);
-int _sys_write(unsigned int fd, const char *buf, size_t size);
-/* Temporary non-syscall op for write to stdout */
-int _sys_write_stdout(int fd, void *buf, size_t size);
 
 /* File ops - kernelspace */
 int kernel_read(struct file *file, char * buf, size_t size);
 struct file *kernel_open(const char *fh, unsigned int mode);
 void kernel_close(struct file *file);
-int kernel_write(struct file *file, const char *buf, size_t size);
 
 #endif /* _SCARAOS_FCNTL_H */

@@ -13,6 +13,7 @@
 #include <arch/processor.h>
 #include <arch/mm.h>
 #include <arch/vga.h>
+#include <arch/serio.h>
 #include <arch/timer.h>
 #include <arch/8259a.h>
 #include <arch/idt.h>
@@ -105,13 +106,14 @@ void do_initcalls(void)
 /* Entry point in to the kernel proper */
 _noreturn _asmlinkage void setup(multiboot_info_t *mbi)
 {
+	serio_init();
 	vga_preinit();
 
 	/* Need this mmediately to catch exceptions */
 	idt_init();
 
 	/* print a pretty message */
-	printk("ScaraOS v0.0.5 for IA-32");
+	printk("ScaraOS v0.0.6 for IA-32");
 	if ( mbi->flags & MBF_CMDLINE ) {
 		cmdline = __va(mbi->cmdline);
 		printk(": %s", cmdline);

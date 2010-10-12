@@ -20,5 +20,4 @@ KERNEL_C_SOURCES = \
 	$(KERNEL_DIR)/fdt.c \
 	$(KERNEL_DIR)/open.c \
 	$(KERNEL_DIR)/read.c \
-	$(KERNEL_DIR)/write.c \
 	$(KERNEL_DIR)/close.c

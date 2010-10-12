@@ -11,7 +11,7 @@ KERNEL_DIR := $(TOPDIR)/kernel
 ARCH_DIR := $(TOPDIR)/arch-$(ARCH)
 FS_DIR := $(TOPDIR)/fs
 
-.PHONY: all clean squeaky boot_floppy
+.PHONY: all clean squeaky boot_floppy userland
 
 ## Target toolchain prefix
 CROSS_COMPILE=
@@ -39,11 +39,12 @@ TARGET: all
 
 # Compiler flags
 LDFLAGS := -melf_i386 -nostdlib -N
-CFLAGS  :=-pipe -ggdb -Os -Wall -ffreestanding -fno-stack-protector \
+CFLAGS  :=-pipe -ggdb -Os -Wall \
+	-m32 -ffreestanding -fno-stack-protector \
 	-Wsign-compare -Wcast-align -Waggregate-return \
 	-Wstrict-prototypes -Wmissing-prototypes \
 	-Wmissing-declarations -Wmissing-noreturn \
-	-Wmissing-format-attribute -m32 \
+	-Wmissing-format-attribute \
 	-I$(TOPDIR)/include $(EXTRA_DEFS)
 
 ./include/arch:
@@ -51,47 +52,39 @@ CFLAGS  :=-pipe -ggdb -Os -Wall -ffreestanding -fno-stack-protector \
 	@$(LN) -sf arch-$(ARCH) ./include/arch
 
 # templates
-%.d %.o: %.c ./include/arch Makefile
-	@echo " [C] $@"
+%.o %.d: %.c ./include/arch Makefile
+	@echo " [C] $(patsubst %.d, %.c, $@)"
 	@$(GCC) $(CFLAGS) \
 		-MMD -MF $(patsubst %.o, %.d, $@) -MT $(patsubst %.d, %.o, $@) \
 		-c -o $(patsubst %.d, %.o, $@) $< 
 %.d %.o: %.S ./include/arch Makefile
-	@echo " [ASM] $@"
+	@echo " [ASM] $(patsubst %.d, %.S, $@)"
 	@$(GCC) $(CFLAGS) -D__ASM__ \
 		-MMD -MF $(patsubst %.o, %.d, $@) -MT $(patsubst %.d, %.o, $@) \
 		-c -o $(patsubst %.d, %.o, $@) $< 
-%.a:
-	@echo " [AR] $@"
-	@$(AR) crs $@ $^
 
 include arch-$(ARCH)/Makefile
 include kernel/Makefile
 include fs/Makefile
 
-ARCH_OBJ := $(patsubst %.S, %.o, $(ARCH_ASM_SOURCES)) \
-		$(patsubst %.c, %.o, $(ARCH_C_SOURCES))
-KERNEL_OBJ := $(patsubst %.c, %.o, $(KERNEL_C_SOURCES))
-FS_OBJ := $(patsubst %.c, %.o, $(FS_C_SOURCES))
+IMAGE_OBJ := $(patsubst %.S, %.o, $(ARCH_ASM_SOURCES)) \
+		$(patsubst %.c, %.o, $(ARCH_C_SOURCES)) \
+		$(patsubst %.c, %.o, $(KERNEL_C_SOURCES)) \
+		$(patsubst %.c, %.o, $(FS_C_SOURCES))
 
 ALL_SOURCES := $(ARCH_C_SOURCES) $(ARCH_ASM_SOURCES) \
 		$(KERNEL_C_SOURCES) \
 		$(FS_C_SOURCES)
 
-IMAGE_OBJ := $(ARCH_DIR)/arch.a \
-		$(KERNEL_DIR)/kernel.a \
-		$(FS_DIR)/fs.a
-
 # Generate dependencies
-ARCH_DEP := $(patsubst %.S, %.d, $(ARCH_ASM_SOURCES)) \
-		$(patsubst %.c, %.d, $(ARCH_C_SOURCES))
-KERNEL_DEP := $(patsubst %.c, %.d, $(KERNEL_C_SOURCES))
-FS_DEP := $(patsubst %.c, %.d, $(FS_C_SOURCES))
-ALL_DEPS := $(ARCH_DEP) $(KERNEL_DEP) $(FS_DEP)
+ALL_DEPS := $(patsubst %.S, %.d, $(ARCH_ASM_SOURCES)) \
+		$(patsubst %.c, %.d, $(ARCH_C_SOURCES)) \
+		$(patsubst %.c, %.d, $(KERNEL_C_SOURCES)) \
+		$(patsubst %.c, %.d, $(FS_C_SOURCES))
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),squeaky)
-include $(ALL_DEPS)
+-include $(ALL_DEPS)
 endif
 endif
 
@@ -116,7 +109,10 @@ kernel.elf.gz: kernel.elf.stripped
 all: kernel.elf.gz
 
 userland:
-	+$(MAKE) -C user boot_floppy BOOT_FLOPPY="../boot.img"
+	@echo " [USERLAND]"
+	+$(MAKE) CROSS_COMPILE=$(CROSS_COMPILE) \
+		BOOT_FLOPPY="../boot.img" \
+		-C user boot_floppy
 
 boot.img: userland kernel.elf.gz menu.lst
 	@echo " [BOOTFLOPPY] $@"
@@ -127,11 +123,12 @@ boot.img: userland kernel.elf.gz menu.lst
 boot_floppy: boot.img
 
 clean:
-	$(RM) -f $(IMAGE_OBJ) $(ALL_DEPS) \
+	@$(RM) -f $(IMAGE_OBJ) $(ALL_DEPS) \
 		$(KERNEL_OBJ) $(KERNEL_DIR)/kernel.o \
 		$(ARCH_OBJ) $(ARCH_DIR)/arch.o \
 		$(FS_OBJ) $(FS_DIR)/fs.o \
 		kernel.elf kernel.elf.stripped kernel.elf.gz
+	make -C user clean
 
 squeaky: clean
 	$(RM) -f ./include/arch
